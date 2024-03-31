@@ -1,10 +1,10 @@
 import sys
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from model import Doctor, Patient, FitnessExpert
+from model import Doctor, Patient
 
 DATABASE_URL = 'sqlite:///heart.db'
-engine = create_engine(DATABASE_URL)
+engine = create_engine('sqlite:///heart.db')
 Session = sessionmaker(bind=engine)
 session = Session()
 
@@ -13,8 +13,7 @@ def display_menu():
     print("Welcome to the Heart Health Management System")
     print("1. Manage Doctors")
     print("2. Manage Patients")
-    print("3. Manage Fitness Experts")
-    print("4. Exit")
+    print("3. Exit")
 
 # the function  registers a doctor
 def register_doctor():
@@ -123,55 +122,8 @@ def view_patient_details():
             print("No doctor assigned to this patient.")
     else:
         print("Patient not found.")
-
-# the function enables  to register a fitness expert
-def register_fitness_expert():
-    print("Register a Fitness Expert")
-    firstname = input("Enter fitness expert's first name: ")
-    lastname = input("Enter fitness expert's last name: ")
-    age = int(input("Enter fitness expert's age: "))
-    gender = input("Enter fitness expert's gender: ")
-    address = input("Enter fitness expert's address: ")
-    email = input("Enter fitness expert's email: ")
-    phone_number = input("Enter fitness expert's phone number: ")
-    working_hours = int(input("Enter fitness expert's working hours: "))
-
-    #the function  creates a new instance of FitnessExpert
-    fitness_expert = FitnessExpert(firstname=firstname, lastname=lastname, age=age, gender=gender,
-                                    address=address, email=email, phone_number=phone_number,
-                                    working_hours=working_hours)
-
-    #the code block  adds the new fitness expert to the session and commit the transaction
-    session.add(fitness_expert)
-    session.commit()
     
-    print("Fitness expert registered successfully!")
-
-# the function enables to view fitness expert details
-def view_fitness_expert_details():
-    fitness_expert_id = int(input("Enter fitness expert's ID: "))
-    fitness_expert = session.query(FitnessExpert).filter(FitnessExpert.fitness_expert_id == fitness_expert_id).first()
-
-    if fitness_expert:
-        print("Fitness Expert Details:")
-        print(f"Name: {fitness_expert.firstname} {fitness_expert.lastname}")
-        print(f"Age: {fitness_expert.age}")
-        print(f"Gender: {fitness_expert.gender}")
-        print(f"Email: {fitness_expert.email}")
-        print(f"Address: {fitness_expert.address}")
-        print(f"Phone Number: {fitness_expert.phone_number}")
-        print(f"Working Hours: {fitness_expert.working_hours}")
-        print(f"Salary: {fitness_expert.salary}")
-        # the function displays patients assigned to this fitness expert
-        if fitness_expert.patients:
-            print("Patients:")
-            for patient in fitness_expert.patients:
-                print(f"- {patient.firstname} {patient.lastname}")
-        else:
-            print("No patients assigned to this fitness expert.")
-    else:
-        print("Fitness expert not found.")
-
+    
 # Main function to allow the option to register and view users' details
 def main():
     while True:
@@ -198,17 +150,8 @@ def main():
                 view_patient_details()
             else:
                 print("Invalid choice.")
+        
         elif choice == '3':
-            print("1. Register a fitness expert")
-            print("2. View fitness expert details")
-            fitness_expert_choice = input("Enter your choice: ")
-            if fitness_expert_choice == '1':
-                register_fitness_expert()
-            elif fitness_expert_choice == '2':
-                view_fitness_expert_details()
-            else:
-                print("Invalid choice.")
-        elif choice == '4':
             sys.exit("Exiting program.")
         else:
             print("Invalid choice. Please try again.")
