@@ -5,53 +5,44 @@ from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 Base = declarative_base()
 
 
-class Doctor(Base):
-    #the doctors are users or stakeholders of the systems with their different details log-in into the system
-    __tablename__ = 'doctors'
-    id = Column(Integer, primary_key=True) #the primary key will allows creation of one to many relationship between the doctor and patient
+class Specialist(Base):
+    __tablename__ = 'specialists'
+    id = Column(Integer, primary_key=True)
     firstname = Column(String)
     lastname = Column(String)
     age = Column(Integer)
     gender = Column(String)
-    email = Column(String)
-    address = Column(String)
-    phone_number = Column(String)
-    working_hours = Column(Integer)
-    salary = Column(Float, nullable=False)
-    patients_assigned = relationship("Patient", back_populates="assigned_doctor", foreign_keys="[Patient.doctor_id]")
+    specialization = Column(String)
+    patients_assigned = relationship("Patient", back_populates="assigned_specialist", foreign_keys="[Patient.specialist_id]")
 
-#the function defines the attributes of the doctor
-    def __init__(self, firstname, lastname, age, gender, address, email, phone_number, salary, working_hours=0):
+    def __init__(self, firstname, lastname, age, gender,  specialization):
         self.firstname = firstname
         self.lastname = lastname
         self.age = age
         self.gender = gender
-        self.address = address
-        self.email = email
-        self.phone_number = phone_number
-        self.working_hours = working_hours
-        self.salary = salary
+        self.specialization = specialization
+        
+        
 
-    def calculate_salary(self):
-        self.salary = 2000 * self.working_hours
+  
 
     def consult(self, patient):
-        if patient.risk_category.startswith("HIGH RISK") or patient.risk_category.startswith("MODERATE RISK"):
-            return f"Doctor {self.firstname} {self.lastname} is ready to consult with {patient.firstname} {patient.lastname}."
-        else:
-            return f"Patient {patient.firstname} {patient.lastname} does not need a doctor's consultation at the moment."
+     if patient.risk_category.startswith("HIGH RISK"):
+        return f"Cardiologist {self.firstname} {self.lastname} is ready to consult with {patient.firstname} {patient.lastname}."
+     elif patient.risk_category.startswith("MODERATE RISK"):
+        return f"General Doctor {self.firstname} {self.lastname} is ready to consult with {patient.firstname} {patient.lastname}."
+     else:
+        return f"Nurse {self.firstname} {self.lastname} will assist {patient.firstname} {patient.lastname}."
 
+ 
+   
 class Patient(Base):
-    #the data base collects demographics and health information to allow the patient to monitor their heart levels
     __tablename__ = 'patients'
     id = Column(Integer, primary_key=True)
     firstname = Column(String)
     lastname = Column(String)
     age = Column(Integer)
     gender = Column(String)
-    address = Column(String)
-    email = Column(String)
-    phone = Column(String)
     diabetes = Column(Boolean)
     family_history = Column(Boolean)
     hypertension = Column(Boolean)
@@ -59,22 +50,21 @@ class Patient(Base):
     height = Column(Float)
     smoking = Column(Boolean)
     heart_failure = Column(Boolean)
+    cholesterol_level = Column(String)  # Add cholesterol level
+    heart_rate = Column(Integer)  # Add heart rate
+    blood_pressure = Column(String)  # Add blood pressure
+    ecg_results = Column(String)  # Add ECG results
     risk_score = Column(Integer)
     risk_category = Column(String)
-    doctor_id = Column(Integer, ForeignKey('doctors.id'))  
-    assigned_doctor = relationship("Doctor", back_populates="patients_assigned", foreign_keys="[Patient.doctor_id]")
-    
-    
-    def __init__(self, firstname, lastname, age, gender, address="", email="", phone="", diabetes=False, hypertension=False, smoking=False, weight=0.0, height=0.0,
-                 family_history=False, heart_failure=False):
-        #the attributes of the patient have been presented 
+    specialist_id = Column(Integer, ForeignKey('specialists.id'))  
+    assigned_specialist = relationship("Specialist", back_populates="patients_assigned", foreign_keys="[Patient.specialist_id]")
+
+    def __init__(self, firstname, lastname, age, gender, diabetes=False, hypertension=False, smoking=False, weight=0.0, height=0.0,
+                 family_history=False, heart_failure=False, cholesterol_level=None, heart_rate=None, blood_pressure=None, ecg_results=None):
         self.firstname = firstname
         self.lastname = lastname
         self.age = age
         self.gender = gender
-        self.address = address
-        self.email = email
-        self.phone = phone
         self.diabetes = diabetes
         self.hypertension = hypertension
         self.smoking = smoking
@@ -82,24 +72,59 @@ class Patient(Base):
         self.height = height
         self.heart_failure = heart_failure
         self.family_history = family_history
+        self.cholesterol_level = cholesterol_level  # Initialize cholesterol level
+        self.heart_rate = heart_rate  # Initialize heart rate
+        self.blood_pressure = blood_pressure  # Initialize blood pressure
+        self.ecg_results = ecg_results  # Initialize ECG results
         self.calculate_risk_score()
         self.get_risk_category()
+
+
 #the framework of the app enables calculation of risk
     def calculate_risk_score(self):
+        
         self.risk_score = int(self.age >= 65) + int(self.diabetes) + int(self.hypertension) + int(self.smoking)
         if self.weight:
             bmi = self.weight / ((self.height / 100) ** 2)
-            if bmi < 18.5 or bmi >= 25:# the bmi was preffered as per WHO reccomendations
+            if bmi < 18.5 or bmi >= 25:
                 self.risk_score += 1
         self.risk_score += int(self.family_history) + int(self.heart_failure)
+
+        # Adjust based on cholesterol level
+        if self.cholesterol_level and self.cholesterol_level =="High":  # Assuming cholesterol_level is in mg/dL
+            self.risk_score += 1
+
+        # Adjust based on heart rate
+        if self.heart_rate:
+            if self.gender == "Male":
+                if self.heart_rate > 100:  # High heart rate threshold for males
+                    self.risk_score += 1
+            else:
+                if self.heart_rate > 90:  # High heart rate threshold for females
+                    self.risk_score += 1
+
+        # Adjust based on blood pressure
+        if self.blood_pressure:
+            systolic, diastolic = map(int, self.blood_pressure.split("/"))
+            if systolic >= 140 or diastolic >= 90:  # High blood pressure threshold
+                self.risk_score += 1
+
+        # Adjust based on ECG results
+        if self.ecg_results == "Abnormal":
+            self.risk_score += 1
+
+        self.get_risk_category()
+
+    
 #enables direction whether to visit an expert or not
     def get_risk_category(self):
-        if self.risk_score >= 4:
-            self.risk_category = "HIGH RISK: Please consult a doctor for further evaluation and management."
-        elif self.risk_score >= 2:
-            self.risk_category = "MODERATE RISK: Consider lifestyle modifications and consult a doctor for advice."
-        else:
+       if self.risk_score >= 4:
+            self.risk_category = "HIGH RISK: Please consult a cardiologist for further evaluation and management."
+       elif self.risk_score >= 2:
+            self.risk_category = "MODERATE RISK: Consider lifestyle modifications and consult a general doctor for advice."
+       else:
             self.risk_category = "LOW RISK: Maintain healthy habits and schedule regular checkups."
+
 
 DATABASE_URL = 'sqlite:///heart.db'
 engine = create_engine(DATABASE_URL, echo=True)
